@@ -112,9 +112,9 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """Завершаем создание коробки"""
     description = update.message.text
     
-    if len(description) > 200:
+    if len(description) > 300:
         await update.message.reply_text(
-            "Описание слишком длинное! Пожалуйста, сократите его до 200 символов.\n"
+            "Описание слишком длинное! Пожалуйста, сократите его до 300 символов.\n"
             f"Текущая длина: {len(description)} символов"
         )
         return DESCRIPTION
@@ -135,10 +135,7 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     
     # Показываем меню управления коробкой
     keyboard = [
-        ['Вернуться в меню'],
-        ['Список участников', 'Удалить участника'],
-        ['Провести жеребьевку', 'Уведомить участников'],
-        ['Удалить коробку', 'Скачать список участников']
+        ['Вернуться в меню']
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
@@ -152,10 +149,7 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     f"<b>Название:</b> {context.user_data['box_name']}\n"
                     f"<b>ID коробки:</b> <code>{box_id}</code>\n"
                     f"<b>Описание:</b>\n<blockquote>{context.user_data['box_description']}</blockquote>\n\n"
-                    "🎯 <b>Доступные действия:</b>\n"
-                    "• Управление участниками\n"
-                    "• Проведение жеребьевки\n"
-                    "• Отправка уведомлений"
+                    "🎯 <b>Используйте пункт настройки из главного меню</b> \n"
                 ),
                 parse_mode='HTML',
                 reply_markup=reply_markup
@@ -166,10 +160,7 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"<b>Название:</b> {context.user_data['box_name']}\n"
             f"<b>ID коробки:</b> <code>{box_id}</code>\n"
             f"<b>Описание:</b>\n<blockquote>{context.user_data['box_description']}</blockquote>\n\n"
-            "🎯 <b>Доступные действия:</b>\n"
-            "• Управление участниками\n"
-            "• Проведение жеребьевки\n"
-            "• Отправка уведомлений",
+            "🎯 <b>Используйте пункт настройки из главного меню</b>\n",
             parse_mode='HTML',
             reply_markup=reply_markup
         )

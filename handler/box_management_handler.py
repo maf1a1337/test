@@ -8,7 +8,8 @@ from database import (
     remove_participant, 
     create_santa_pairs,
     is_box_owner,
-    get_user_info
+    get_user_info,
+    get_box_info
 )
 
 WAITING_FOR_NOTIFICATION_TEXT = "WAITING_FOR_NOTIFICATION_TEXT"
@@ -17,6 +18,9 @@ EDIT_BOX = 'EDIT_BOX'
 
 async def show_box_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показывает меню управления коробкой"""
+    id_box = context.user_data.get('current_box_id')
+    box_info = await get_box_info(id_box)
+    
     keyboard = [
         [KeyboardButton("Список участников")],
         [KeyboardButton("Скачать список участников")],
@@ -26,10 +30,27 @@ async def show_box_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [KeyboardButton("Вернуться в меню")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text(
-        "Выберите действие:",
-        reply_markup=reply_markup
+    
+    message_text = (
+        "📦 <b>Информация о коробке</b>\n\n"
+        f"<b>Название:</b> {box_info['box_name']}\n"
+        f"<b>ID:</b> <code>{box_info['id_box']}</code>\n"
+        f"<b>Описание:</b>\n<blockquote>{box_info['box_desc']}</blockquote>\n\n"
+        "⚙️ Выберите действие:"
     )
+    
+    if update.callback_query:
+        await update.callback_query.message.reply_text(
+            message_text,
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
+    else:
+        await update.message.reply_text(
+            message_text,
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
     return MANAGE_BOX
 
 async def return_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -41,7 +62,12 @@ async def return_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text(
-        "Главное меню:", 
+        "🎄 <b>Главное меню Secret Santa</b>\n\n"
+        "Выберите действие:\n"
+        "📦 <b>Создать коробку</b> - организуйте свой обмен подарками\n"
+        "🎁 <b>Присоединиться к коробке</b> - участвуйте в существующем обмене\n"
+        "⚙️ <b>Настройки</b> - управляйте своими коробками",
+        parse_mode='HTML',
         reply_markup=reply_markup
     )
     return ConversationHandler.END

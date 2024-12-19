@@ -8,7 +8,7 @@ import os
 # Состояния для редактирования (начинаем с 10 для избежания конфликтов)
 (EDIT_NAME, EDIT_ADDRESS, EDIT_WISH) = range(10, 13)
 
-async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = "🏠 <b>Главное меню</b>"):
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = None):
     """Вспомогательная функция для показа главного меню"""
     keyboard = [
         ['Создать коробку'],
@@ -20,11 +20,24 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, mes
     # Очищаем данные состояния
     context.user_data.clear()
     
-    await update.message.reply_text(
-        message,
-        parse_mode='HTML',
-        reply_markup=reply_markup
-    )
+    # Если передано специальное сообщение (например, об ошибке), показываем его
+    if message:
+        await update.message.reply_text(
+            message,
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
+    else:
+        # Иначе показываем стандартное меню
+        await update.message.reply_text(
+            "🎄 <b>Главное меню Secret Santa</b>\n\n"
+            "Выберите действие:\n"
+            "📦 <b>Создать коробку</b> - организуйте свой обмен подарками\n"
+            "🎁 <b>Присоединиться к коробке</b> - участвуйте в существующем обмене\n"
+            "⚙️ <b>Настройки</b> - управляйте своими коробками",
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
     return ConversationHandler.END
 
 async def join_box(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -143,10 +156,7 @@ async def process_wish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
         # Показываем меню участника
         keyboard = [
-            ['Вернуться в меню'],
-            ['Изменить имя', 'Изменить адрес'],
-            ['Изменить пожелание'],
-            ['Информация о коробке', 'Отменить участие']
+            ['Вернуться в меню']
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         
@@ -166,7 +176,7 @@ async def process_wish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
                         f"<b>Имя:</b> {name}\n"
                         f"<b>Адрес:</b> {address}\n"
                         f"<b>Пожелание:</b>\n<blockquote>{wish}</blockquote>\n\n"
-                        "✏️ Используйте кнопки ниже для управления вашими данными"
+                        "✏️ Для изменения данных, вернитесь в главное меню и перейдите в настройки"
                     ),
                     parse_mode='HTML',
                     reply_markup=reply_markup
@@ -181,7 +191,7 @@ async def process_wish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
                 f"<b>Имя:</b> {name}\n"
                 f"<b>Адрес:</b> {address}\n"
                 f"<b>Пожелание:</b>\n<blockquote>{wish}</blockquote>\n\n"
-                "✏️ Используйте кнопки ниже для управления вашими данными",
+                "✏️ Для изменения данных, вернитесь в главное меню и перейдите в настройки",
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
@@ -190,7 +200,7 @@ async def process_wish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     except Exception as e:
         print(f"Ошибка при добавлении участника: {e}")
-        await update.message.reply_text("❌ Произошла ошибка при регистрации. Попробуйте снова.")
+        await update.message.reply_text("❌ Произошла ошиб��а при регистрации. Попробуйте снова.")
         return ConversationHandler.END
 
 async def show_participant_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, box_id: int):

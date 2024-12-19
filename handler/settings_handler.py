@@ -3,14 +3,15 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database import (
     get_box_info, 
     get_participant_info, 
-    get_user_boxes,  # Добавляем импорт
-    get_created_boxes,  # Добавим получение созданных коробок
+    get_participating_boxes,  # Заменяем get_user_boxes
+    get_created_boxes,
     is_participant
 )
 import os
 from handler.join_box_handler import MENU  # Добавим импорт состояния MENU
+from handler.box_management_handler import show_box_menu  # Добавьте эту строку в начало файла с другими импортами
 
-async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = "🏠 <b>Главное меню</b>", is_callback: bool = False):
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, message: str = None, is_callback: bool = False):
     """Вспомогательная функция для показа главного меню"""
     keyboard = [
         ['Создать коробку'],
@@ -21,6 +22,16 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, mes
     
     # Очищаем данные состояния
     context.user_data.clear()
+    
+    # Если сообщение не передано, используем стандартное приветствие
+    if not message:
+        message = (
+            "🎄 <b>Главное меню Secret Santa</b>\n\n"
+            "Выберите действие:\n"
+            "📦 <b>Создать коробку</b> - организуйте свой обмен подарками\n"
+            "🎁 <b>Присоединиться к коробке</b> - участвуйте в существующем обмене\n"
+            "⚙️ <b>Настройки</b> - управляйте своими коробками"
+        )
     
     if is_callback:
         await update.callback_query.message.reply_text(
@@ -36,24 +47,10 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, mes
         )
     return ConversationHandler.END
 
-async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработка нажатия кнопки Настройки"""
-    user_id = update.effective_user.id
+async def show_participating_boxes(update: Update, user_id: int):
+    """Показывает коробки, в которых пользователь участвует"""
+    participant_boxes = await get_participating_boxes(user_id)  # Используем новую функцию
     
-    # Получаем список коробок где пользователь участник
-    participant_boxes = await get_user_boxes(user_id)
-    
-    # Получаем список коробок где пользователь организатор
-    created_boxes = await get_created_boxes(user_id)
-    
-    if not participant_boxes and not created_boxes:
-        return await show_main_menu(
-            update,
-            context,
-            "❌ <b>У вас пока нет коробок</b>"
-        )
-    
-    # Отправляем информацию о коробках, где пользователь участник
     if participant_boxes:
         await update.message.reply_text(
             "🎁 <b>Коробки, в которых вы участвуете:</b>",
@@ -73,8 +70,12 @@ async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
+    return bool(participant_boxes)
+
+async def show_created_boxes(update: Update, user_id: int):
+    """Показывает коробки, созданные пользователем"""
+    created_boxes = await get_created_boxes(user_id)
     
-    # Отправляем информацию о коробках, где пользователь организатор
     if created_boxes:
         await update.message.reply_text(
             "\n👑 <b>Коробки, которые вы создали:</b>",
@@ -84,7 +85,7 @@ async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         for box in created_boxes:
             keyboard = [[InlineKeyboardButton(
                 "⚙️ Управление",
-                callback_data=f"admin_box_{box['id_box']}"
+                callback_data=f"manage_box_{box['id_box']}"
             )]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -94,9 +95,26 @@ async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
+    return bool(created_boxes)
+
+async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка нажатия кнопки Настройки"""
+    user_id = update.effective_user.id
+    
+    # Показы��аем коробки, где пользователь участник и создатель
+    has_participating = await show_participating_boxes(update, user_id)
+    has_created = await show_created_boxes(update, user_id)
+    
+    # Если нет ни одной коробки
+    if not has_participating and not has_created:
+        return await show_main_menu(
+            update,
+            context,
+            "❌ <b>У вас пока нет коробок</b>"
+        )
 
 async def handle_box_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Обработка нажатия кнопок Подробнее и Управление"""
+    """Обработка нажатия кнопки Подробнее для участника"""
     query = update.callback_query
     await query.answer()
     
@@ -152,47 +170,7 @@ async def handle_box_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return MENU
     
-    elif data.startswith("admin_box_"):
+    elif data.startswith("manage_box_"):
         box_id = int(data.split('_')[-1])
         context.user_data['current_box_id'] = box_id
-        
-        # Получаем информацию о коробке
-        box_info = await get_box_info(box_id)
-        
-        if not box_info:
-            return await show_main_menu(
-                update,
-                context,
-                "❌ <b>Ошибка:</b> Не удалось получить информацию о коробке",
-                is_callback=True
-            )
-        
-        # Показываем меню управления коробкой
-        keyboard = [
-            ['Вернуться в меню'],
-            ['Список участников', 'Жеребьёвка'],
-            ['Изменить название', 'Изменить описание'],
-            ['Изменить фото', 'Удалить коробку']
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        
-        # Отправляем сообщение с информацией и меню управления
-        await query.message.reply_text(
-            "⚙️ <b>Управление коробкой</b>\n\n"
-            f"<b>Название:</b> {box_info['box_name']}\n"
-            f"<b>ID коробки:</b> <code>{box_info['id_box']}</code>\n"
-            f"<b>Описание:</b>\n<blockquote>{box_info['box_desc']}</blockquote>\n\n"
-            "✏️ Используйте кнопки ниже для управления коробкой",
-            parse_mode='HTML',
-            reply_markup=reply_markup
-        )
-        
-        # Если есть фото, отправляем его отдельным сообщением
-        if box_info['box_photo'] and os.path.exists(box_info['box_photo']):
-            with open(box_info['box_photo'], 'rb') as photo:
-                await query.message.reply_photo(
-                    photo=photo,
-                    caption="🖼 Текущее фото коробки"
-                )
-        
-        return MENU
+        return await show_box_menu(update, context)

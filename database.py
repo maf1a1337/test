@@ -91,9 +91,8 @@ async def get_box_participants(id_box: int):
     """Получение списка участников коробки"""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
-            SELECT u.user_id, u.username
-            FROM users u
-            JOIN user_wish uw ON u.user_id = uw.user_id
+            SELECT DISTINCT uw.user_id, uw.user_name
+            FROM user_wish uw
             WHERE uw.id_box = ?
         """, (id_box,))
         return await cursor.fetchall()
@@ -180,7 +179,7 @@ async def get_box_info(box_id: int):
     """Получение информации о коробке"""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
-            SELECT id_box, box_name, box_desc
+            SELECT id_box, box_name, box_desc, box_photo
             FROM santa_box
             WHERE id_box = ?
         """, (box_id,))
@@ -190,7 +189,8 @@ async def get_box_info(box_id: int):
             return {
                 'id_box': row[0],
                 'box_name': row[1],
-                'box_desc': row[2]
+                'box_desc': row[2],
+                'box_photo': row[3]
             }
         return None
 
@@ -227,28 +227,30 @@ async def update_participant_info(user_id: int, box_id: int, field: str, value: 
         """, (value, user_id, box_id))
         await db.commit()
 
-async def get_user_boxes(user_id: int):
-    """Получение списка коробок, созданных пользователем"""
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("""
-            SELECT id_box, box_name, box_desc
-            FROM santa_box
-            WHERE user_id = ?
-        """, (user_id,))
-        rows = await cursor.fetchall()
-        return [{'id_box': row[0], 'box_name': row[1], 'box_desc': row[2]} for row in rows]
-
 async def get_participating_boxes(user_id: int):
-    """Получение списка коробок, в которых участвует пользователь"""
+    """Получение списка коробок, в которых пользователь является участником"""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
-            SELECT sb.id_box, sb.box_name, sb.box_desc
+            SELECT DISTINCT sb.id_box, sb.box_name, sb.box_desc
             FROM santa_box sb
             JOIN user_wish uw ON sb.id_box = uw.id_box
             WHERE uw.user_id = ?
         """, (user_id,))
         rows = await cursor.fetchall()
         return [{'id_box': row[0], 'box_name': row[1], 'box_desc': row[2]} for row in rows]
+
+async def get_created_boxes(user_id: int):
+    """Получение списка коробок, созданных пользователем"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("""
+            SELECT id_box, box_name, box_desc, box_photo
+            FROM santa_box 
+            WHERE user_id = ?
+            ORDER BY id_box DESC
+        """, (user_id,))
+        boxes = await cursor.fetchall()
+        return [dict(row) for row in boxes] if boxes else []
 
 async def get_participant_info(user_id: int, box_id: int):
     """Получение информации об участнике в конкретной коробке"""
@@ -267,16 +269,3 @@ async def get_participant_info(user_id: int, box_id: int):
                 'user_wish': row[2]
             }
         return None
-
-async def get_created_boxes(user_id: int) -> list:
-    """Получение списка коробок, созданных пользователем"""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute("""
-            SELECT id_box, box_name, box_desc, box_photo
-            FROM santa_box 
-            WHERE user_id = ?
-            ORDER BY id_box DESC
-        """, (user_id,))
-        boxes = await cursor.fetchall()
-        return [dict(row) for row in boxes] if boxes else []
