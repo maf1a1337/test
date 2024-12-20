@@ -1,9 +1,39 @@
-config/.env
-santa_bot.db
-__pycache__/
-*.py[cod]
-photo_box/
+# Virtual Environment
 venv/
 env/
-.venv/
 .env/
+.venv/
+
+# Environment variables
+config/.env
+
+# Database
+santa_bot.db
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+photo_box/
