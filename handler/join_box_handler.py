@@ -230,7 +230,7 @@ async def show_participant_menu(update: Update, context: ContextTypes.DEFAULT_TY
     await update.message.reply_text(
         "🎄 <b>Информация об участии</b>\n\n"
         f"<b>Название коробки:</b> {box_info['box_name']}\n"
-        f"<b>ID короб��и:</b> <code>{box_info['id_box']}</code>\n"
+        f"<b>ID коробки:</b> <code>{box_info['id_box']}</code>\n"
         f"<b>Описание:</b>\n<blockquote>{box_info['box_desc']}</blockquote>\n\n"
         "👤 <b>Ваши данные:</b>\n"
         f"<b>Имя:</b> {user_info['user_name']}\n"
@@ -393,9 +393,13 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
 
 async def return_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Возврат в главное меню"""
+    """Возврат в главное меню с полным сбросом состояний"""
     # Полностью очищаем все состояния и данные
     context.user_data.clear()
+    
+    # Удаляем все специфические данные, если они есть
+    if 'current_box_id' in context.user_data:
+        del context.user_data['current_box_id']
     
     keyboard = [
         ['Создать коробку'],
@@ -404,15 +408,22 @@ async def return_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
+    # Отправляем новое сообщение с главным меню
     await update.message.reply_text(
-        "🎄 <b>Главное меню Secret Santa</b>\n\n"
-        "Выберите действие:\n"
-        "📦 <b>Создать коробку</b> - организуйте свой обмен подарками\n"
-        "🎁 <b>Присоединиться к коробке</b> - участвуйте в существующем обмене\n"
-        "⚙️ <b>Настройки</b> - управляйте своими коробками",
+        "🔄 <b>Возврат в главное меню</b>\n\n"
+        "📦 <b>Выберите действие:</b>\n"
+        "• Создать коробку - организуйте свой обмен подарками\n"
+        "• Присоединиться к коробке - участвуйте в существующем обмене\n"
+        "• Настройки - управляйте своими коробками",
         parse_mode='HTML',
         reply_markup=reply_markup
     )
     
     # Принудительно завершаем все активные состояния
+    for handler in context.application.handlers.values():
+        for group_handler in handler:
+            if isinstance(group_handler, ConversationHandler):
+                # Сбрасываем состояние для каждого ConversationHandler
+                group_handler.update_state(ConversationHandler.END, context)
+    
     return ConversationHandler.END 
