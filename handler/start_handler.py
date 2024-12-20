@@ -21,7 +21,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     keyboard = [
-        ['Создат�� коробку'],
+        ['Создать коробку'],
         ['Присоединиться к коробке'],
         ['Настройки']
     ]
