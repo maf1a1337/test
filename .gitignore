@@ -3,3 +3,7 @@ santa_bot.db
 __pycache__/
 *.py[cod]
 photo_box/
+venv/
+env/
+.venv/
+.env/
