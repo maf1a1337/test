@@ -20,6 +20,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
 
+    # Добавляем пользователя в базу данных при старте
+    await add_user(
+        user_id=user.id,
+        username=user.username,
+        connection_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    )
+
     keyboard = [
         ['Создать коробку'],
         ['Присоединиться к коробке'],
