@@ -200,7 +200,7 @@ async def process_wish(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     except Exception as e:
         print(f"Ошибка при добавлении участника: {e}")
-        await update.message.reply_text("❌ Произошла ошиб��а при регистрации. Попробуйте снова.")
+        await update.message.reply_text("❌ Произошла ошибка при регистрации. Попробуйте снова.")
         return ConversationHandler.END
 
 async def show_participant_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, box_id: int):
@@ -230,7 +230,7 @@ async def show_participant_menu(update: Update, context: ContextTypes.DEFAULT_TY
     await update.message.reply_text(
         "🎄 <b>Информация об участии</b>\n\n"
         f"<b>Название коробки:</b> {box_info['box_name']}\n"
-        f"<b>ID коробки:</b> <code>{box_info['id_box']}</code>\n"
+        f"<b>ID короб��и:</b> <code>{box_info['id_box']}</code>\n"
         f"<b>Описание:</b>\n<blockquote>{box_info['box_desc']}</blockquote>\n\n"
         "👤 <b>Ваши данные:</b>\n"
         f"<b>Имя:</b> {user_info['user_name']}\n"
@@ -394,4 +394,25 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def return_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Возврат в главное меню"""
-    return await show_main_menu(update, context) 
+    # Полностью очищаем все состояния и данные
+    context.user_data.clear()
+    
+    keyboard = [
+        ['Создать коробку'],
+        ['Присоединиться к коробке'],
+        ['Настройки']
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        "🎄 <b>Главное меню Secret Santa</b>\n\n"
+        "Выберите действие:\n"
+        "📦 <b>Создать коробку</b> - организуйте свой обмен подарками\n"
+        "🎁 <b>Присоединиться к коробке</b> - участвуйте в существующем обмене\n"
+        "⚙️ <b>Настройки</b> - управляйте своими коробками",
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+    
+    # Принудительно завершаем все активные состояния
+    return ConversationHandler.END 

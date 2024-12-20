@@ -59,7 +59,7 @@ def main():
     application = Application.builder().token(BOT_TOKEN).build()
     
     # Обработчик команды /start
-    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("start", start), group=0)
     
     # Обработчик создания коробки
     box_creation_handler = ConversationHandler(
@@ -74,7 +74,7 @@ def main():
         },
         fallbacks=[]
     )
-    application.add_handler(box_creation_handler)
+    application.add_handler(box_creation_handler, group=1)
     
     # Обработчик управления коробкой
     box_management_handler = ConversationHandler(
@@ -97,7 +97,7 @@ def main():
         },
         fallbacks=[MessageHandler(filters.COMMAND, return_to_main_menu)]
     )
-    application.add_handler(box_management_handler)
+    application.add_handler(box_management_handler, group=2)
     
     # Обработчик только для присоединения к коробке
 
@@ -132,12 +132,12 @@ def main():
     )
 
     # Добавляем обработчики
-    application.add_handler(join_box_handler)
-    application.add_handler(participant_menu_handler)
+    application.add_handler(join_box_handler, group=1)
+    application.add_handler(participant_menu_handler, group=2)
 
-    # Обновляем последние обработчики
-    application.add_handler(MessageHandler(filters.Regex('^Настройки$'), show_settings))
-    application.add_handler(MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu))
+    # Обработчики кнопок главного меню должны иметь самый низкий приоритет
+    application.add_handler(MessageHandler(filters.Regex('^Настройки$'), show_settings), group=3)
+    application.add_handler(MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu), group=3)
 
     # Запуск бота
     application.run_polling(allowed_updates=Update.ALL_TYPES)
