@@ -8,7 +8,6 @@ from telegram.ext import (
     ConversationHandler,
     CallbackQueryHandler
 )
-from config.config import BOT_TOKEN
 from database import init_app
 from handler.start_handler import start
 from handler.box_handler import (
@@ -55,7 +54,7 @@ logging.basicConfig(
 def main():
     # Инициализация базы данных
     init_app()
-    
+    from config.config import BOT_TOKEN
     # Создание приложения
     application = Application.builder().token(BOT_TOKEN).build()
     

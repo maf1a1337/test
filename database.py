@@ -1,9 +1,15 @@
 import aiosqlite
 import sqlite3
 import os
-from config.config import DB_PATH
 from dotenv import load_dotenv
 
+def get_env_values():
+    """Получение значений из переменных окружения"""
+    load_dotenv(os.path.join('config', '.env'))
+    return {
+        'BOT_TOKEN': os.getenv('BOT_TOKEN'),
+        'DB_PATH': os.getenv('DB_PATH')
+    }
 
 def init_env():
     """Инициализация файла .env, если он отсутствует"""
@@ -13,12 +19,13 @@ def init_env():
         os.makedirs('config')
     
     # Проверяем существование файла и наличие необходимых переменных
-    if not os.path.exists(env_path) or not all([os.getenv('BOT_TOKEN'), os.getenv('DB_PATH')]):
+    env_values = get_env_values()
+    if not os.path.exists(env_path) or not all([env_values['BOT_TOKEN'], env_values['DB_PATH']]):
         print("\n=== Настройка конфигурации бота ===")
         
         # Получаем существующие значения, если они есть
-        existing_token = os.getenv('BOT_TOKEN', '')
-        existing_db_path = os.getenv('DB_PATH', 'santa_bot.db')
+        existing_token = env_values['BOT_TOKEN'] or ''
+        existing_db_path = env_values['DB_PATH'] or 'santa_bot.db'
         
         # Запрашиваем BOT_TOKEN
         while True:
@@ -40,25 +47,28 @@ def init_env():
         
         print("\n✅ Файл конфигурации успешно создан!")
         
+        # Создаем или обновляем config.py
+        config_path = os.path.join('config', 'config.py')
+        with open(config_path, 'w', encoding='utf-8') as f:
+            f.write('import os\n')
+            f.write('from dotenv import load_dotenv\n\n')
+            f.write('# Загружаем переменные окружения из файла .env\n')
+            f.write('load_dotenv(os.path.join("config", ".env"))\n\n')
+            f.write('# Получаем значения из переменных окружения\n')
+            f.write('BOT_TOKEN = os.getenv("BOT_TOKEN")\n')
+            f.write('DB_PATH = os.getenv("DB_PATH")\n')
+        
         # Перезагружаем переменные окружения
-        load_dotenv(env_path)
+        return get_env_values()
     else:
-        # Загружаем существующие переменные окружения
-        load_dotenv(env_path)
         print("✅ Конфигурация загружена успешно")
+        return env_values
 
-def init_app():
-    """Инициализация приложения: создание необходимых файлов и папок"""
-    print("\n=== Инициализация приложения ===")
-    init_env()  # Инициализация .env
-    init_db()   # Инициализация базы данных
-    print("\n=== Инициализация завершена ===\n")
-
-def init_db():
+def init_db(db_path):
     """Инициализация базы данных: создание файла и таблиц, если они отсутствуют."""
-    if not os.path.exists(DB_PATH):
+    if not os.path.exists(db_path):
         print("База данных не найдена. Создаём новую базу данных...")
-        with sqlite3.connect(DB_PATH) as db:
+        with sqlite3.connect(db_path) as db:
             cursor = db.cursor()
 
             # Таблица пользователей
@@ -109,6 +119,18 @@ def init_db():
 
             db.commit()
 
+def init_app():
+    """Инициализация приложения: создание необходимых файлов и папок"""
+    print("\n=== Инициализация приложения ===")
+    env_values = init_env()  # Инициализация .env и получение значений
+    init_db(env_values['DB_PATH'])   # Инициализация базы данных с явной передачей пути
+    print("\n=== Инициализация завершена ===\n")
+    return env_values
+
+# Инициализируем значения при импорте модуля
+ENV_VALUES = init_app()
+DB_PATH = ENV_VALUES['DB_PATH']
+
 async def add_user(user_id: int, username: str, connection_date: str):
     """Асинхронное добавление пользователя."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -120,14 +142,14 @@ async def add_user(user_id: int, username: str, connection_date: str):
 
 
 async def add_box(user_id: int, box_name: str, box_photo: str, box_desc: str) -> int:
-    """Асинхронное добавление ко��обки. Возвращает id созданной коробки."""
+    """Асинхронное добавление коробки. Возвращает id созданной коробки."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
         INSERT INTO santa_box (user_id, box_name, box_photo, box_desc)
         VALUES (?, ?, ?, ?)
         """, (user_id, box_name, box_photo, box_desc))
         await db.commit()
-        return cursor.lastrowid  # Возвращаем id созданной коробки
+        return cursor.lastrowid  # озвращаем id созданной коробки
 
 async def delete_box(id_box: int):
     """Удаление коробки и всех связанных записей"""
