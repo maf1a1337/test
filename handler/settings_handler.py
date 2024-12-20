@@ -99,9 +99,12 @@ async def show_created_boxes(update: Update, user_id: int):
 
 async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка нажатия кнопки Настройки"""
+    # Очищаем состояние
+    context.user_data.clear()
+    
     user_id = update.effective_user.id
     
-    # Показы��аем коробки, где пользователь участник и создатель
+    # Показываем коробки, где пользователь участник и создатель
     has_participating = await show_participating_boxes(update, user_id)
     has_created = await show_created_boxes(update, user_id)
     
@@ -112,6 +115,9 @@ async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             context,
             "❌ <b>У вас пока нет коробок</b>"
         )
+    
+    # Возвращаем ConversationHandler.END для сброса состояния
+    return ConversationHandler.END
 
 async def handle_box_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Обработка нажатия кнопки Подробнее для участника"""
