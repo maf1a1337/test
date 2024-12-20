@@ -2,7 +2,57 @@ import aiosqlite
 import sqlite3
 import os
 from config.config import DB_PATH
+from dotenv import load_dotenv
 
+
+def init_env():
+    """Инициализация файла .env, если он отсутствует"""
+    env_path = os.path.join('config', '.env')
+    
+    if not os.path.exists('config'):
+        os.makedirs('config')
+    
+    # Проверяем существование файла и наличие необходимых переменных
+    if not os.path.exists(env_path) or not all([os.getenv('BOT_TOKEN'), os.getenv('DB_PATH')]):
+        print("\n=== Настройка конфигурации бота ===")
+        
+        # Получаем существующие значения, если они есть
+        existing_token = os.getenv('BOT_TOKEN', '')
+        existing_db_path = os.getenv('DB_PATH', 'santa_bot.db')
+        
+        # Запрашиваем BOT_TOKEN
+        while True:
+            bot_token = input(f"\nВведите токен бота (текущий: {existing_token or 'отсутствует'})\n"
+                            "Получить токен можно у @BotFather в Telegram: ")
+            if bot_token.strip():
+                break
+            print("❌ Токен не может быть пустым!")
+        
+        # Запрашиваем DB_PATH
+        db_path = input(f"\nВведите путь к файлу базы данных (Enter для значения по умолчанию: {existing_db_path})\n"
+                       "Путь к базе данных: ")
+        db_path = db_path.strip() if db_path.strip() else existing_db_path
+        
+        # Записываем значения в файл .env
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.write(f"BOT_TOKEN={bot_token}\n")
+            f.write(f"DB_PATH={db_path}\n")
+        
+        print("\n✅ Файл конфигурации успешно создан!")
+        
+        # Перезагружаем переменные окружения
+        load_dotenv(env_path)
+    else:
+        # Загружаем существующие переменные окружения
+        load_dotenv(env_path)
+        print("✅ Конфигурация загружена успешно")
+
+def init_app():
+    """Инициализация приложения: создание необходимых файлов и папок"""
+    print("\n=== Инициализация приложения ===")
+    init_env()  # Инициализация .env
+    init_db()   # Инициализация базы данных
+    print("\n=== Инициализация завершена ===\n")
 
 def init_db():
     """Инициализация базы данных: создание файла и таблиц, если они отсутствуют."""
@@ -70,7 +120,7 @@ async def add_user(user_id: int, username: str, connection_date: str):
 
 
 async def add_box(user_id: int, box_name: str, box_photo: str, box_desc: str) -> int:
-    """Асинхронное добавление коробки. Возвращает id созданной коробки."""
+    """Асинхронное добавление ко��обки. Возвращает id созданной коробки."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute("""
         INSERT INTO santa_box (user_id, box_name, box_photo, box_desc)

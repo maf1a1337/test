@@ -9,7 +9,7 @@ from telegram.ext import (
     CallbackQueryHandler
 )
 from config.config import BOT_TOKEN
-from database import init_db
+from database import init_app
 from handler.start_handler import start
 from handler.box_handler import (
     create_box,
@@ -54,7 +54,7 @@ logging.basicConfig(
 
 def main():
     # Инициализация базы данных
-    init_db()
+    init_app()
     
     # Создание приложения
     application = Application.builder().token(BOT_TOKEN).build()
@@ -101,6 +101,7 @@ def main():
     application.add_handler(box_management_handler)
     
     # Обработчик только для присоединения к коробке
+
     join_box_handler = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex('^Присоединиться к коробке$'), join_box)],
         states={
