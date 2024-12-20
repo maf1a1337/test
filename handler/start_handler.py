@@ -1,10 +1,13 @@
 from telegram import ForceReply, Update, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
 from database import add_user
 from datetime import datetime
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Начало работы с ботом"""
+    # Очищаем все данные контекста при старте
+    context.user_data.clear()
+    
     user = update.effective_user
     
     if not user.username:
@@ -50,3 +53,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         reply_markup=reply_markup,
         parse_mode='HTML'
     )
+    
+    # Возвращаем ConversationHandler.END чтобы сбросить все активные состояния
+    return ConversationHandler.END
