@@ -1,6 +1,6 @@
 from telegram import ForceReply, Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
-from database import add_user
+from database import add_user, get_user_info
 from datetime import datetime
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -23,12 +23,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
 
-    # Добавляем пользователя в базу данных при старте
-    await add_user(
-        user_id=user.id,
-        username=user.username,
-        connection_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    )
+    # Проверяем, существует ли пользователь в базе данных
+    existing_user = await get_user_info(user.id)
+    
+    # Добавляем пользователя только если его нет в базе
+    if not existing_user:
+        await add_user(
+            user_id=user.id,
+            username=user.username,
+            connection_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        )
 
     keyboard = [
         ['Создать коробку'],
