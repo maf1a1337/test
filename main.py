@@ -74,30 +74,6 @@ def main():
         },
         fallbacks=[]
     )
-    application.add_handler(box_creation_handler, group=1)
-    
-    # Обработчик управления коробкой
-    box_management_handler = ConversationHandler(
-        entry_points=[
-            MessageHandler(filters.Regex('^Управление коробкой$'), show_box_menu),
-            CallbackQueryHandler(handle_box_callback, pattern=r'^manage_box_\d+$')
-        ],
-        states={
-            MANAGE_BOX: [
-                MessageHandler(filters.Regex('^Список участников$'), show_participants),
-                MessageHandler(filters.Regex('^Скачать список участников$'), download_participants),
-                MessageHandler(filters.Regex('^Провести жеребьевку$'), start_santa_draw),
-                MessageHandler(filters.Regex('^Уведомить участников$'), notify_participants),
-                MessageHandler(filters.Regex('^Удалить коробку$'), delete_box_handler),
-                MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu),
-            ],
-            WAITING_FOR_NOTIFICATION_TEXT: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, send_notification)
-            ],
-        },
-        fallbacks=[MessageHandler(filters.COMMAND, return_to_main_menu)]
-    )
-    application.add_handler(box_management_handler, group=2)
     
     # Обработчик только для присоединения к коробке
 
@@ -112,6 +88,32 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)]
     )
 
+    # Обработчик управления коробкой
+    box_management_handler = ConversationHandler(
+        entry_points=[
+            MessageHandler(filters.Regex('^Управление коробкой$'), show_box_menu),
+            CallbackQueryHandler(handle_box_callback, pattern=r'^manage_box_\d+$')
+        ],
+        states={
+            MANAGE_BOX: [
+                MessageHandler(filters.Regex('^Список участников$'), show_participants),
+                MessageHandler(filters.Regex('^Скачать список участников$'), download_participants),
+                MessageHandler(filters.Regex('^Провести жеребьевку$'), start_santa_draw),
+                MessageHandler(filters.Regex('^Уведомить участников$'), notify_participants),
+                MessageHandler(filters.Regex('^Удалить коробку$'), delete_box_handler),
+            ],
+            WAITING_FOR_NOTIFICATION_TEXT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, send_notification)
+            ],
+        },
+        fallbacks=[
+            MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu),
+            CommandHandler('cancel', cancel)
+        ],
+        name="box_management",
+        persistent=False
+    )
+
     # Обработчик для меню участника после нажатия кнопки "Подробнее"
     participant_menu_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(handle_box_callback, pattern=r'^participant_box_\d+$')],
@@ -122,22 +124,28 @@ def main():
                 MessageHandler(filters.Regex('^Изменить пожелание$'), edit_wish),
                 MessageHandler(filters.Regex('^Информация о коробке$'), show_box_info),
                 MessageHandler(filters.Regex('^Отменить участие$'), cancel_participation),
-                MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu),
             ],
             EDIT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_edit_name)],
             EDIT_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_edit_address)],
             EDIT_WISH: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_edit_wish)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[
+            MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu),
+            CommandHandler('cancel', cancel)
+        ],
+        name="participant_menu",
+        persistent=False
     )
 
-    # Добавляем обработчики
-    application.add_handler(join_box_handler, group=1)
-    application.add_handler(participant_menu_handler, group=2)
-
-    # Обработчики кнопок главного меню должны иметь самый низкий приоритет
-    application.add_handler(MessageHandler(filters.Regex('^Настройки$'), show_settings), group=3)
-    application.add_handler(MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu), group=3)
+    # Добавляем обработчики в правильном порядке и без групп
+    application.add_handler(box_creation_handler)
+    application.add_handler(join_box_handler)
+    application.add_handler(box_management_handler)
+    application.add_handler(participant_menu_handler)
+    
+    # Обработчики кнопок главного меню
+    application.add_handler(MessageHandler(filters.Regex('^Настройки$'), show_settings))
+    application.add_handler(MessageHandler(filters.Regex('^Вернуться в меню$'), return_to_main_menu))
 
     # Запуск бота
     application.run_polling(allowed_updates=Update.ALL_TYPES)
