@@ -116,6 +116,16 @@ async def show_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             "❌ <b>У вас пока нет коробок</b>"
         )
     
+    # Добавляем кнопку возврата в меню
+    keyboard = [['Вернуться в меню']]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        "⬆️ <b>Используйте кнопку ниже, чтобы вернуться в главное меню</b>",
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+    
     # Возвращаем ConversationHandler.END для сброса состояния
     return ConversationHandler.END
 
@@ -145,7 +155,7 @@ async def handle_box_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
             ['Вернуться в меню'],
             ['Изменить имя', 'Изменить адрес'],
             ['Изменить пожелание'],
-            ['Информация о коробке', 'Отменить участие']
+            ['Информация о коробке', 'Отменить участи��']
         ]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         
